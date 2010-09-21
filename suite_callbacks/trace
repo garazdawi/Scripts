@@ -1,0 +1,23 @@
+{me, ct_suite_callback}.
+{f, ct_suite_callback, get_callbacks}.
+{m, ct_junit_report}.
+%{me, test_SUITE}.
+%{f, ct_util, read_suite_data}.
+%{f, ct_util, save_suite_data_async}.
+%{f, test_server_ctrl, run_test_case}.
+%{f, test_server_ctrl, run_test_case_apply}.
+%{f, test_server, do_run_test_case_apply}.
+%{f, ct_framework, get_suite}.
+%{f, ct_framework, make_all_conf}.
+%{f, ct_framework, make_conf}.
+%{f, ct_framework, configure}.
+%{f, ct_framework, end_tc}.
+%{f, test_server_ctrl, add_job}.
+%{f, test_server, run_test_case_eval}.
+%{f, test_server, run_test_case_eval1}.
+%{f, test_server, process_return_val}.
+%{f, test_server, ts_tc}.
+%{f, test_server, spawn_fw_call}.
+%{f, test_server_sup, framework_call}.
+%{f, test_server, user_callback}.
+%{m, ct_run}.

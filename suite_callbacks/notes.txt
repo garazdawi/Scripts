@@ -1,0 +1,3 @@
+run_test -ct_trace /home/lukas/work/suite_callbacks/trace -pa . -pa /ldisk/lukas/clean_otp/lib/common_test/ebin/ -spec test.spec
+
+run_test -ct_trace /home/lukas/work/suite_callbacks/trace -pa . -suite test_SUITE -logdir logdir/ -suite_callback ct_junit_report
