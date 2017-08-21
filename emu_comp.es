@@ -3,7 +3,34 @@
 
 -mode(compile).
 
+main(["parse", ERL_TOP, Outputfile]) ->
+    OrigPwd = file:get_cwd(),
+    file:set_cwd(ERL_TOP),
+    Triple = string:trim(os:cmd("erts/autoconf/config.guess")),
+    OpcodesH = filename:join([ERL_TOP,"erts","emulator",Triple,
+                              "opt","smp","beam_opcodes.h"]),
+    AsmFile = string:trim(os:cmd("mktemp")),
+
+    %% First make everything so that we know that only beam_emu is made
+    os:cmd("make emulator"),
+
+    %% Touch and remake with V=1 in order to get correct arguments to gcc
+    os:cmd("touch erts/emulator/beam/beam_emu.c"),
+    VerboseMake = os:cmd("V=1 make emulator"),
+
+    %% Create the correct gcc command line
+    {match, [OrigCmd]} = re:run(VerboseMake,"gcc.*beam_emu.o",
+                                [unicode,{capture,all,list}]),
+    AsmCmd = re:replace(OrigCmd,"-o .*$",["-S -o ",AsmFile],[unicode,{return,list}]),
+
+    %% Create the new asm
+    io:format("Compiling .S file: ~s~n",[AsmCmd]),
+    os:cmd(["cd erts/emulator && ",AsmCmd]),
+
+    file:set_cwd(OrigPwd),
+    main(["parse", AsmFile, OpcodesH, Outputfile]);
 main(["parse", AsmFile, OpcodesH, Outputfile]) ->
+    io:format("calling emu_comp.es ~s ~s ~s~n",[AsmFile, OpcodesH, Outputfile]),
     Data = get_asm_for_opcodes(AsmFile, get_opcodes(OpcodesH)),
     {ok, D} = file:open(Outputfile, [write]),
     file:write(D, term_to_binary(Data)),
@@ -17,13 +44,36 @@ main(["compare", Db1Name, Db2Name, OutFile]) ->
     Db2 = binary_to_term(Db2Bin),
     compare(Db1, Db2, OutFile);
 main(_) ->
-    io:format("Usage: asm_comp.es parse BEAM_EMU.S BEAM_OPCODES.h output.ebd\n"
-              "   or: asm_comp.es compare FIRST.edb SECOND.edb [output.html]\n"
+    io:format("Usage: emu_comp.es parse ERL_TOP output.edb\n"
+              "   or: emu_comp.es compare FIRST.edb SECOND.edb [output.html]\n"
               "\n"
               "Parse the beam_emu assembly file for data about opcodes.\n"
               " or \n"
-              "Create a html file that shows the comparison in between two\n"
-              "different beam_emu assembly files.\n").
+              "Create a comparison in between two different beam_emu assembly files.\n"
+              "\n"
+              "Parsing:\n"
+              "  Precondition: A autoconf:ed and configured otp src tree\n"
+              "\n"
+              "  You only need to give the ERL_TOP path to the otp src\n"
+              "  that you want to parse. The script should be able to\n"
+              "  compile and parse the files it needs without any help.\n"
+              "  If the wrong files are parsed (say you want to parse the\n"
+              "  debug emulator for some reason), it is possible to give\n"
+              "  the script the beam_emu.S and beam_opcodes.h like this:\n"
+              "    emu_comp.es beam_emu.S beam_opcodes.h output.edb\n"
+              "\n"
+              "\n"
+              "Comparing:\n"
+              "  Precondition: Two parsed beam_emu.S in the form of edb files\n"
+              "\n"
+              "  The FIRST argument is considered to be the original beam_emu\n"
+              "  and the SECOND is the new with (hopefully) the improvements in.\n"
+              "\n"
+              "Example:\n"
+              "  emu_comp.es parse otp_orig orig.edb\n"
+              "  emu_comp.es parse otp new.edb\n"
+              "  emu_comp.es compare orig.edb new.edb\n"
+             ).
 
 
 get_opcodes(File) ->
